@@ -1,4 +1,5 @@
 import Adafruit_SSD1306
+from .INA219 import INA219
 
 from PIL import Image
 from PIL import ImageDraw
@@ -78,6 +79,8 @@ class OLEDPart(object):
         self.bus_number = bus_number
         self.oled = OLEDDisplay(self.bus_number)
         self.oled.init_display()
+        # UPS HAT I2C
+        self.ina219 = INA219(addr=0x42)
         self.on = False
         if auto_record_on_throttle:
             self.recording = 'AUTO'
@@ -96,6 +99,8 @@ class OLEDPart(object):
         else:
             self.wlan0 = None
 
+        self.power = None
+
     def run(self):
         if not self.on:
             self.on = True
@@ -110,10 +115,18 @@ class OLEDPart(object):
             self.recording = 'NO (Records = %s)' % (self.num_records)
 
         self.user_mode = 'User Mode (%s)' % (user_mode)
+
+        bus_voltage = self.ina219.getBusVoltage_V()
+        shunt_voltage = self.ina219.getShuntVoltage_mV() / 1000
+        current = self.ina219.getCurrent_mA()
+        if current < 0:
+            self.power = 'V:{:4.2f} mA:{:5.0f}(BATT)'.format(bus_voltage+shunt_voltage, -current)
+        else:
+            self.power = 'V:{:4.2f} mA:{:5.0f}(CHRG)'.format(bus_voltage+shunt_voltage, current)
         self.update()
 
     def update_slots(self):
-        updates = [self.eth0, self.wlan0, self.recording, self.user_mode]
+        updates = [self.wlan0, self.recording, self.user_mode, self.power]
         index = 0
         # Update slots
         for update in updates:
