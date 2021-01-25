@@ -100,7 +100,6 @@ class OLEDPart(object):
             self.wlan0 = None
 
         self.power = None
-        self.last_update = time.time()
 
     def run(self):
         if not self.on:
@@ -124,7 +123,6 @@ class OLEDPart(object):
         else:
             self.power = 'V:{:4.2f} mA:{:5.0f}(CHRG)'.format(bus_voltage+shunt_voltage, current)
 
-        self.update()
 
     def update_slots(self):
         updates = [self.wlan0, self.recording, self.user_mode, self.power]
@@ -136,13 +134,13 @@ class OLEDPart(object):
                 index += 1
 
         # Update display
-        t = time.time()
-        if t - self.last_update > 1:
-            self.oled.update()
-            self.last_update = t
+        self.oled.update()
 
     def update(self):
-        self.update_slots()
+        self.on = True
+        # Run threaded loop by itself
+        while self.on:
+            self.update_slots()
 
     def shutdown(self):
         self.oled.clear_display()
