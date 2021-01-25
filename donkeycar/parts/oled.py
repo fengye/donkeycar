@@ -100,6 +100,7 @@ class OLEDPart(object):
             self.wlan0 = None
 
         self.power = None
+        self.last_update = time.time()
 
     def run(self):
         if not self.on:
@@ -115,7 +116,6 @@ class OLEDPart(object):
             self.recording = 'NO (Records = %s)' % (self.num_records)
 
         self.user_mode = 'User Mode (%s)' % (user_mode)
-
         bus_voltage = self.ina219.getBusVoltage_V()
         shunt_voltage = self.ina219.getShuntVoltage_mV() / 1000
         current = self.ina219.getCurrent_mA()
@@ -123,6 +123,7 @@ class OLEDPart(object):
             self.power = 'V:{:4.2f} mA:{:5.0f}(BATT)'.format(bus_voltage+shunt_voltage, -current)
         else:
             self.power = 'V:{:4.2f} mA:{:5.0f}(CHRG)'.format(bus_voltage+shunt_voltage, current)
+
         self.update()
 
     def update_slots(self):
@@ -135,7 +136,10 @@ class OLEDPart(object):
                 index += 1
 
         # Update display
-        self.oled.update()
+        t = time.time()
+        if t - self.last_update > 1:
+            self.oled.update()
+            self.last_update = t
 
     def update(self):
         self.update_slots()
