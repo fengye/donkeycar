@@ -56,6 +56,7 @@ class TFLitePilot(KerasPilot):
         self.input_shape = self.input_details[0]['shape']
     
     def inference(self, img_arr, other_arr):
+        # https://github.com/autorope/donkeycar/pull/762/
         input_data = np.float32(img_arr.reshape(self.input_shape))
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
         self.interpreter.invoke()

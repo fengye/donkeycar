@@ -14,8 +14,9 @@ from docopt import docopt
 import donkeycar as dk
 from donkeycar.parts.tub_v2 import TubWriter
 from donkeycar.parts.datastore import TubHandler
-from donkeycar.parts.controller import LocalWebController
+from donkeycar.parts.controller import LocalWebController, WebFpv
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
+from donkeycar.parts.throttle_filter import ThrottleFilter
 
 
 class DriveMode:
@@ -112,6 +113,19 @@ def drive(cfg, model_path=None, model_type=None):
             inputs=['cam/image_array'],
             outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
             threaded=True)
+
+    th_filter = ThrottleFilter()
+    car.add(th_filter, inputs=['user/throttle'], outputs=['user/throttle'])
+
+    if cfg.USE_FPV:
+        car.add(WebFpv(), inputs=['cam/image_array'], threaded=True)
+
+    # OLED setup
+    if cfg.USE_SSD1306_128_32:
+        from donkeycar.parts.oled import OLEDPart
+        auto_record_on_throttle = cfg.USE_JOYSTICK_AS_DEFAULT and cfg.AUTO_RECORD_ON_THROTTLE
+        oled_part = OLEDPart(cfg.SSD1306_128_32_I2C_BUSNUM, auto_record_on_throttle=auto_record_on_throttle)
+        car.add(oled_part, inputs=['recording', 'tub/num_records', 'user/mode'], outputs=[], threaded=True)
 
     # pilot condition to determine if user or ai are driving
     car.add(PilotCondition(), inputs=['user/mode'], outputs=['run_pilot'])
