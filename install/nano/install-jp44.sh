@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-password='jetson'
+password='donkey'
 # Get the full dir name of this script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -33,7 +33,7 @@ sudo -H pip3 install ./torch-1.7.0-cp36-cp36m-linux_aarch64.whl
 
 # Install PyTorch Vision
 sudo apt-get install libjpeg-dev zlib1g-dev libpython3-dev libavcodec-dev libavformat-dev libswscale-dev
-mkdir -p ~/projects; cd ~/projects
+mkdir -p ~/Projects; cd ~/Projects
 git clone --branch v0.8.1 https://github.com/pytorch/vision torchvision
 cd torchvision
 export BUILD_VERSION=0.8.1
@@ -42,17 +42,14 @@ sudo python3 setup.py install
 
 # Create virtual enviroment
 pip3 install virtualenv
-python3 -m virtualenv -p python3 ~/.virtualenv/donkeycar --system-site-packages
-echo "source ~/.virtualenv/donkeycar/bin/activate" >> ~/.bashrc
+python3 -m virtualenv -p python3 ~/env --system-site-packages
+echo "source ~/env/bin/activate" >> ~/.bashrc
 # "source ~/.virtualenv/donkeycar/bin/activate" in the shell script
-. ~/.virtualenv/donkeycar/bin/activate
+. ~/env/bin/activate
 
 
 # Install DonkeyCar as user package
-cd ~/projects
-git clone https://github.com/autorope/donkeycar
-cd donkeycar
-git checkout dev
+cd ~/Projects/donkeycar
 pip install -e .[nano]
 
 # https://github.com/keras-team/keras-tuner/issues/317
