@@ -1,4 +1,4 @@
-import Adafruit_SSD1306
+# requires the Adafruit ssd1306 library: pip install adafruit-circuitpython-ssd1306
 from .INA219 import INA219
 
 from PIL import Image
@@ -6,46 +6,63 @@ from PIL import ImageDraw
 from PIL import ImageFont
 import subprocess
 import time
+from board import SCL, SDA
+import busio
+from PIL import Image, ImageDraw, ImageFont
+import adafruit_ssd1306
 from threading import Lock, Condition
 
 class OLEDDisplay(object):
     '''
     Manages drawing of text on the OLED display.
     '''
-    def __init__(self, bus_number=1):
+    def __init__(self, rotation=0, resolution=1):
         # Placeholder
         self._EMPTY = ''
         # Total number of lines of text
         self._SLOT_COUNT = 4
-        self.bus_number = bus_number
         self.slots = [self._EMPTY] * self._SLOT_COUNT
         self.display = None
+        self.rotation = rotation
+        if resolution == 2:
+            self.height = 64
+        else:
+            self.height = 32
 
     def init_display(self):
         '''
         Initializes the OLED display.
         '''
         if self.display is None:
-            # Use gpio = 1 to prevent platform auto-detection.
-            self.display = Adafruit_SSD1306.SSD1306_128_32(rst=None, i2c_bus=self.bus_number, gpio=1)
-            # Initialize Library
-            self.display.begin()
-            # Clear Display
-            self.display.clear()
-            self.display.display()
-            # Display Metrics
+            # Create the I2C interface.
+            i2c = busio.I2C(SCL, SDA)
+            # Create the SSD1306 OLED class.
+            # The first two parameters are the pixel width and pixel height.  Change these
+            # to the right size for your display!
+            self.display = adafruit_ssd1306.SSD1306_I2C(128, self.height, i2c)
+            self.display.rotation = self.rotation
+
+
+            self.display.fill(0)
+            self.display.show()
+
+            # Create blank image for drawing.
+            # Make sure to create image with mode '1' for 1-bit color.
             self.width = self.display.width
-            self.height = self.display.height
-            # Create Image in 1-bit mode
-            self.image = Image.new('1', (self.width, self.height))
-            # Create a Drawing object to draw into the image
+            self.image = Image.new("1", (self.width, self.height))
+
+            # Get drawing object to draw on image.
             self.draw = ImageDraw.Draw(self.image)
+
+            # Draw a black filled box to clear the image.
+            self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
             # Load Fonts
             self.font = ImageFont.load_default()
             self.clear_display()
 
     def turnoff_display(self):
-        self.display.command(Adafruit_SSD1306.SSD1306_DISPLAYOFF)
+        # FIXME: replace the constant from circuitpython package
+        self.display.poweroff()
 
     def clear_display(self):
         if self.draw is not None:
@@ -71,17 +88,17 @@ class OLEDDisplay(object):
                 top += 8
 
         # Update
+        self.display.rotation = self.rotation
         self.display.image(self.image)
-        self.display.display()
+        self.display.show()
 
 
 class OLEDPart(object):
     '''
     The part that updates status on the oled display.
     '''
-    def __init__(self, bus_number, auto_record_on_throttle=False):
-        self.bus_number = bus_number
-        self.oled = OLEDDisplay(self.bus_number)
+    def __init__(self, rotation, resolution, auto_record_on_throttle=False):
+        self.oled = OLEDDisplay(rotation, resolution)
         self.oled.init_display()
         # UPS HAT I2C
         self.ina219 = INA219(addr=0x42)
@@ -132,7 +149,7 @@ class OLEDPart(object):
 
 
     def update_slots(self):
-        updates = [self.wlan0, self.recording, self.user_mode, self.power]
+        updates = [self.eth0, self.wlan0, self.power, self.recording, self.user_mode]
         index = 0
         # Update slots
         for update in updates:
