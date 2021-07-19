@@ -35,7 +35,7 @@ class OLEDDisplay(object):
             # Create the SSD1306 OLED class.
             # The first two parameters are the pixel width and pixel height.  Change these
             # to the right size for your display!
-            self.display = adafruit_ssd1306.SSD1306_I2C(128, self.height, i2c)
+            self.display = adafruit_ssd1306.SSD1306_I2C(128, self.height, i2c, page_addressing=True)
             self.display.rotation = self.rotation
 
 
@@ -80,7 +80,6 @@ class OLEDDisplay(object):
                 top += 8
 
         # Update
-        self.display.rotation = self.rotation
         self.display.image(self.image)
         self.display.show()
 
