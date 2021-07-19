@@ -6,7 +6,7 @@ from board import SCL, SDA
 import busio
 from PIL import Image, ImageDraw, ImageFont
 import adafruit_ssd1306
-
+from threading import Lock, Condition
 
 class OLEDDisplay(object):
     '''
@@ -55,6 +55,9 @@ class OLEDDisplay(object):
             # Load Fonts
             self.font = ImageFont.load_default()
             self.clear_display()
+
+    def turnoff_display(self):
+        self.display.poweroff()
 
     def clear_display(self):
         if self.draw is not None:
@@ -109,9 +112,13 @@ class OLEDPart(object):
         else:
             self.wlan0 = None
 
+        self.mutex = Lock()
+        self.wait_update_cond = Condition()
+
     def run(self):
-        if not self.on:
-            self.on = True
+        with self.mutex:
+            if not self.on:
+                self.on = True
 
     def run_threaded(self, recording, num_records, user_mode):
         if num_records is not None and num_records > 0:
@@ -137,14 +144,27 @@ class OLEDPart(object):
         self.oled.update()
 
     def update(self):
-        self.on = True
+        with self.mutex:
+            self.on = True
         # Run threaded loop by itself
-        while self.on:
+        while True:
             self.update_slots()
+            with self.mutex:
+                on = self.on
+            if not on:
+                break
+
+        with self.wait_update_cond:
+            self.wait_update_cond.notify()
 
     def shutdown(self):
-        self.oled.clear_display()
-        self.on = False
+        with self.mutex:
+            self.on = False
+        # Wait for update() thread to exit
+        with self.wait_update_cond:
+            self.wait_update_cond.wait()
+        # Turn off display to save OLED
+        self.oled.turnoff_display()
 
     # https://github.com/NVIDIA-AI-IOT/jetbot/blob/master/jetbot/utils/utils.py
 
