@@ -167,8 +167,9 @@ class CSICamera(BaseCamera):
             cv2.CAP_GSTREAMER)
 
         self.poll_camera()
-        print('CSICamera loaded.. .warming camera')
+        print('CSICamera loaded... warming camera... ', end='')
         time.sleep(2)
+        print('done.')
         
     def update(self):
         self.init_camera()

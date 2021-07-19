@@ -137,6 +137,17 @@ def drive(cfg, model_path=None, model_type=None):
                          'recording'],
                 threaded=True)
 
+    if cfg.USE_FPV:
+        car.add(WebFpv(), inputs=['cam/image_array'], threaded=True)
+
+    # OLED setup
+    if cfg.USE_SSD1306_128_32:
+        from donkeycar.parts.oled import OLEDPart
+        auto_record_on_throttle = cfg.USE_JOYSTICK_AS_DEFAULT and cfg.AUTO_RECORD_ON_THROTTLE
+        oled_part = OLEDPart(cfg.SSD1306_128_32_I2C_BUSNUM, auto_record_on_throttle=auto_record_on_throttle)
+        car.add(oled_part, inputs=['recording', 'tub/num_records', 'user/mode'], outputs=[], threaded=True)
+
+
     # pilot condition to determine if user or ai are driving
     car.add(PilotCondition(), inputs=['user/mode'], outputs=['run_pilot'])
 

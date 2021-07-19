@@ -1170,6 +1170,22 @@ class PS3JoystickController(JoystickController):
             'right_stick_vert' : self.set_throttle,
         }
 
+class PS3SwappedJoystickController(PS3JoystickController):
+    '''
+    Swapped left/right analog stick for PS3 controller
+    '''
+    def init_trigger_maps(self):
+        '''
+        init set of mapping from buttons to function calls
+        '''
+        super(PS3SwappedJoystickController, self).init_trigger_maps()
+
+        self.axis_trigger_map = {
+            'right_stick_horz' : self.set_steering,
+            'left_stick_vert' : self.set_throttle,
+        }
+        
+
 
 class PS4JoystickController(JoystickController):
     '''
@@ -1591,6 +1607,8 @@ def get_js_controller(cfg):
     cont_class = None
     if cfg.CONTROLLER_TYPE == "ps3":
         cont_class = PS3JoystickController
+    elif cfg.CONTROLLER_TYPE == "ps3swapped":
+        cont_class = PS3SwappedJoystickController
     elif cfg.CONTROLLER_TYPE == "ps4":
         cont_class = PS4JoystickController
     elif cfg.CONTROLLER_TYPE == "nimbus":
