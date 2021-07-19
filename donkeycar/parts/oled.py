@@ -1,9 +1,5 @@
 # requires the Adafruit ssd1306 library: pip install adafruit-circuitpython-ssd1306
 from .INA219 import INA219
-
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
 import subprocess
 import time
 from board import SCL, SDA
@@ -39,7 +35,7 @@ class OLEDDisplay(object):
             # Create the SSD1306 OLED class.
             # The first two parameters are the pixel width and pixel height.  Change these
             # to the right size for your display!
-            self.display = adafruit_ssd1306.SSD1306_I2C(128, self.height, i2c, page_addressing=True)
+            self.display = adafruit_ssd1306.SSD1306_I2C(128, self.height, i2c)
             self.display.rotation = self.rotation
 
 
@@ -87,7 +83,6 @@ class OLEDDisplay(object):
                 top += 8
 
         # Update
-        self.display.rotation = self.rotation
         self.display.image(self.image)
         self.display.show()
 
@@ -122,6 +117,7 @@ class OLEDPart(object):
         self.power = None
         self.mutex = Lock()
         self.wait_update_cond = Condition()
+        self.last_query_ina219 = time.time()
 
     def run(self):
         with self.mutex:
@@ -138,14 +134,18 @@ class OLEDPart(object):
             self.recording = 'NO (Records = %s)' % (self.num_records)
 
         self.user_mode = 'User Mode (%s)' % (user_mode)
-        bus_voltage = self.ina219.getBusVoltage_V()
-        shunt_voltage = self.ina219.getShuntVoltage_mV() / 1000
-        current = self.ina219.getCurrent_mA()
-        if current < 0:
-            self.power = 'V:{:4.2f} mA:{:5.0f}(BATT)'.format(bus_voltage+shunt_voltage, -current)
-        else:
-            self.power = 'V:{:4.2f} mA:{:5.0f}(CHRG)'.format(bus_voltage+shunt_voltage, current)
 
+        curr_time = time.time()
+        if curr_time - self.last_query_ina219 > 1:
+            bus_voltage = self.ina219.getBusVoltage_V()
+            shunt_voltage = self.ina219.getShuntVoltage_mV() / 1000
+            current = self.ina219.getCurrent_mA()
+            if current < 0:
+                self.power = 'V:{:4.2f} mA:{:5.0f}(BATT)'.format(bus_voltage+shunt_voltage, -current)
+            else:
+                self.power = 'V:{:4.2f} mA:{:5.0f}(CHRG)'.format(bus_voltage+shunt_voltage, current)
+
+            self.last_query_ina219 = curr_time
 
     def update_slots(self):
         updates = [self.eth0, self.wlan0, self.power, self.recording, self.user_mode]
