@@ -1,6 +1,5 @@
 # requires the Adafruit ssd1306 library: pip install adafruit-circuitpython-ssd1306
 from .INA219 import INA219
-
 import subprocess
 import time
 from board import SCL, SDA
@@ -118,7 +117,6 @@ class OLEDPart(object):
         self.power = None
         self.mutex = Lock()
         self.wait_update_cond = Condition()
-
         self.last_query_ina219 = time.time()
 
     def run(self):
@@ -136,6 +134,7 @@ class OLEDPart(object):
             self.recording = 'NO (Records = %s)' % (self.num_records)
 
         self.user_mode = 'User Mode (%s)' % (user_mode)
+
         curr_time = time.time()
         if curr_time - self.last_query_ina219 > 1:
             bus_voltage = self.ina219.getBusVoltage_V()
@@ -147,7 +146,6 @@ class OLEDPart(object):
                 self.power = 'V:{:4.2f} mA:{:5.0f}(CHRG)'.format(bus_voltage+shunt_voltage, current)
 
             self.last_query_ina219 = curr_time
-
 
     def update_slots(self):
         updates = [self.eth0, self.wlan0, self.power, self.recording, self.user_mode]
