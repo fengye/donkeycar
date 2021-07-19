@@ -1222,8 +1222,34 @@ class PS3SwappedJoystickController(PS3JoystickController):
             'right_stick_horz' : self.set_steering,
             'left_stick_vert' : self.set_throttle,
         }
-        
 
+class PS3JoystickSixAdController(PS3JoystickController):
+    '''
+    PS3 controller via sixad
+    '''
+    def init_js(self):
+        '''
+        attempt to init joystick
+        '''
+        try:
+            self.js = PS3JoystickSixAd(self.dev_fn)
+            if not self.js.init():
+                self.js = None
+        except FileNotFoundError:
+            print(self.dev_fn, "not found.")
+            self.js = None
+        return self.js is not None
+
+    def init_trigger_maps(self):
+        '''
+        init set of mapping from buttons to function calls
+        '''
+        super(PS3JoystickSixAdController, self).init_trigger_maps()
+
+        self.axis_trigger_map = {
+            'right_stick_horz' : self.set_steering,
+            'left_stick_vert' : self.set_throttle,
+        }
 
 class PS4JoystickController(JoystickController):
     '''
@@ -1647,6 +1673,8 @@ def get_js_controller(cfg):
         cont_class = PS3JoystickController
     elif cfg.CONTROLLER_TYPE == "ps3swapped":
         cont_class = PS3SwappedJoystickController
+    elif cfg.CONTROLLER_TYPE == "ps3sixad":
+        cont_class = PS3JoystickSixAdController
     elif cfg.CONTROLLER_TYPE == "ps4":
         cont_class = PS4JoystickController
     elif cfg.CONTROLLER_TYPE == "nimbus":
